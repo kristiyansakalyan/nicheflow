@@ -1,0 +1,8 @@
+datamodule:
+  _target_: nicheflow.datamodules.h5ad_ct_datamodule.H5ADCTDataModule
+  split_seed: ${seed}
+  train_batch_size: 1024
+  eval_batch_size: 1024
+  num_workers: 2
+  train_ratio: 0.8
+  val_ratio: 0.1

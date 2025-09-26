@@ -1,0 +1,8 @@
+defaults:
+  - ct_base
+
+datamodule:
+  data_fp: ${paths.data_dir}/mouse_brain_aging.pkl
+
+n_pcs: 50
+n_classes: 18

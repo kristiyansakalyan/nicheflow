@@ -1,0 +1,18 @@
+# @package _global_
+defaults:
+  - override /data: ct_med
+  - override /model: classifier
+  - override /logger: wandb
+  - override /trainer: gpu
+
+logger:
+  wandb:
+    name: "Classifier_MED"
+    group: "classifier"
+
+trainer:
+  max_epochs: 500
+  gradient_clip_val: 1.0
+
+model:
+  plot_callbacks: False

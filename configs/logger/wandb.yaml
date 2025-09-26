@@ -1,0 +1,9 @@
+wandb:
+  _target_: lightning.pytorch.loggers.wandb.WandbLogger
+  save_dir: "${paths.output_dir}"
+  offline: False
+  id: null
+  anonymous: null
+  project: "NicheFlow"
+  log_model: False
+  group: ""

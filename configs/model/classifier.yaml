@@ -1,0 +1,25 @@
+_target_: nicheflow.tasks.ct_classification.CellTypeClassification
+
+net:
+  _target_: nicheflow.models.ct_classifier.CTClassifierNet
+  input_dim: ${data.n_pcs} # The number of PCA components
+  hidden_dim: 32
+  output_dim: ${data.n_classes} # The number of cell types
+
+optimizer:
+  _target_: torch.optim.AdamW
+  _partial_: true
+  lr: 0.001
+  weight_decay: 0.00001
+
+lr_scheduler:
+  _target_: torch.optim.lr_scheduler.ReduceLROnPlateau
+  _partial_: true
+  mode: max
+  factor: 0.75
+  patience: 25
+
+lr_scheduler_args:
+  monitor: val/f1
+
+plot_callbacks: True

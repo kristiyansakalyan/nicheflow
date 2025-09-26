@@ -1,0 +1,20 @@
+# @package _global_
+defaults:
+  - _self_
+  - data: ct_med
+  - model: classifier
+  - callbacks: default
+  - logger: null
+  - trainer: cpu
+  - paths: default
+  - hydra: default
+  - launcher: slurm
+  - experiment: null
+
+task_name: "train"
+
+train: True
+test: True
+
+ckpt_path: null
+seed: 2025
