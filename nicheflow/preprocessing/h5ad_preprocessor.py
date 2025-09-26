@@ -251,27 +251,3 @@ class H5ADPreprocessor:
             pickle.dump(ds, file, protocol=pickle.HIGHEST_PROTOCOL)
 
         _logger.info(f"Saved file at: {fp}")
-
-
-"""
-    def _compute_timepoint_graphs(self) -> None:
-        if self.ct_to_int is None or self.X_pca is None or self.ct is None:
-            raise ValueError(
-                "The followingshould be initalized at this point: ['ct_to_int', 'X_pca', 'ct']. "
-                + "Did you call '_prepare_timepoints_and_annotations(adata)' and "
-                + "'_normalize_coordinates_and_features(adata)'?"
-            )
-        annotations_get_vec = np.vectorize(self.ct_to_int.get)
-        print("Creating per timepoint PyTorch Geoemtric Data objects")
-
-        self.timepoint_graphs: dict[float, Data] = {}
-        for timepoint in self.timepoints_ordered:
-            indices = self.timepoint_indices[timepoint]
-            self.timepoint_graphs[timepoint] = Data(
-                x=torch.Tensor(self.X_pca[indices]),
-                pos=torch.Tensor(self.coords[indices]),
-                annotations=torch.Tensor(annotations_get_vec(self.ct[indices])),
-                embedding=torch.Tensor([self.timepoint_to_int[timepoint]]),
-            )
-
-"""
