@@ -5,7 +5,7 @@ from torch.utils.data import Dataset
 from nicheflow.preprocessing.h5ad_dataset_type import load_h5ad_dataset_dataclass
 
 
-class H5ADCTDataset(Dataset):  # type: ignore
+class H5ADCTDataset(Dataset):
     def __init__(self, filepath: str) -> None:
         ds = load_h5ad_dataset_dataclass(filepath=filepath)
 

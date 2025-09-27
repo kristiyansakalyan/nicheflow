@@ -43,7 +43,7 @@ build-backend = "poetry.core.masonry.api"
 [tool.ruff]
 line-length = 100
 target-version = "py310"
-src = ["src", "tests"]
+src = ["nicheflow"]
 
 [tool.ruff.lint]
 select = [
@@ -68,7 +68,7 @@ docstring-code-format = true
 
 [tool.mypy]
 python_version = "3.10"
-files = ["src", "tests"]
+files = ["nicheflow"]
 show_error_codes = true
 pretty = true
 warn_unused_ignores = true

@@ -10,8 +10,8 @@ class FeedForward(nn.Module):
         self.activation = nn.LeakyReLU()
 
     def forward(
-        self, x: Float[Tensor, "batch_size n_microenvs n_ponts {self.input_dim}"]
-    ) -> Float[Tensor, "batch_size n_microenvs n_ponts {self.input_dim}"]:
+        self, x: Float[Tensor, "... {self.input_dim}"]
+    ) -> Float[Tensor, "... {self.input_dim}"]:
         residual = x
         x = self.fc1(x)
         x = self.activation(x)

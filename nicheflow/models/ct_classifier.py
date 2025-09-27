@@ -4,7 +4,7 @@ from torch import Tensor, nn
 
 class CTClassifierNet(nn.Module):
     def __init__(self, input_dim: int, output_dim: int, hidden_dim: int) -> None:
-        super().__init__()  # type: ignore
+        super().__init__()
         self.input_dim = input_dim
         self.output_dim = output_dim
         self.net = nn.Sequential(

@@ -1,6 +1,6 @@
 import numpy as np
 import torch
-from scipy.spatial.ckdtree import cKDTree  # type: ignore
+from scipy.spatial.ckdtree import cKDTree
 
 
 def grid_based_sampling_by_y(
@@ -33,7 +33,7 @@ def grid_based_sampling_by_y(
         raise ValueError("Points should be a (N,2) array")
 
     # Build a KD-tree for fast nearest-neighbor queries (on full set)
-    tree = cKDTree(coords)  # type: ignore
+    tree = cKDTree(coords)
 
     # 1) Compute overall bounding box
     min_xy = coords.min(axis=0)  # [min_x, min_y]
@@ -68,11 +68,11 @@ def grid_based_sampling_by_y(
         for x_center in x_centers:
             # Query the global KD-tree for nearest neighbor
             _, idx = tree.query([x_center, y_center])
-            selected_indices.append(idx)  # type: ignore
+            selected_indices.append(idx)
 
     # 6) Remove duplicates
-    selected_indices = np.unique(selected_indices)  # type: ignore
-    return selected_indices  # type: ignore
+    selected_indices = np.unique(selected_indices)
+    return selected_indices
 
 
 def chunked_cdist_sum_argsort(

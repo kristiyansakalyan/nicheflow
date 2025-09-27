@@ -5,7 +5,7 @@ from typing import Any
 
 import numpy as np
 import torch
-from scanpy import AnnData  # type: ignore
+from scanpy import AnnData
 from tqdm import tqdm
 
 from nicheflow.preprocessing import H5ADDatasetDataclass
@@ -17,7 +17,7 @@ _logger = logging.getLogger(__name__)
 
 
 class H5ADPreprocessor:
-    def __init__(  # noqa: PLR0913
+    def __init__(
         self,
         timepoint_column: str,
         cell_type_column: str,
@@ -66,7 +66,7 @@ class H5ADPreprocessor:
         self.test_microenvs = None
 
         # Statistics that are needed to reverse the normalizations
-        self.stats = {"coords": {}, "X_pca": {}}  # type: ignore
+        self.stats = {"coords": {}, "X_pca": {}}
 
     def preprocess_data(self, adata: AnnData) -> None:
         self.PCs = adata.varm["PCs"]
@@ -81,15 +81,11 @@ class H5ADPreprocessor:
             timepoint: i for i, timepoint in enumerate(self.timepoints_ordered)
         }
         self.timepoint_indices: dict[str, np.ndarray] = {
-            t: np.where(adata.obs[self.timepoint_column] == t)[0]  # type: ignore
-            for t in self.timepoints_ordered
+            t: np.where(adata.obs[self.timepoint_column] == t)[0] for t in self.timepoints_ordered
         }
         # Annotations
-        self.ct_ordered = sorted(adata.obs[self.ct_column].cat.categories)  # type: ignore
-        self.ct_to_int = {  # type: ignore
-            annotation: i
-            for i, annotation in enumerate(self.ct_ordered)  # type: ignore
-        }
+        self.ct_ordered = sorted(adata.obs[self.ct_column].cat.categories)
+        self.ct_to_int = {annotation: i for i, annotation in enumerate(self.ct_ordered)}
 
     def _normalize_coordinates_and_features(self, adata: AnnData) -> None:
         method = "standardization" if self.standardize_coordinates else "min-max scaling"
@@ -104,14 +100,14 @@ class H5ADPreprocessor:
                 coords_mean = self.coords[indices].mean(axis=0)
                 coords_std = self.coords[indices].std(axis=0)
                 # Save statistics
-                self.stats["coords"][timepoint] = {"mean": coords_mean, "std": coords_std}  # type: ignore
+                self.stats["coords"][timepoint] = {"mean": coords_mean, "std": coords_std}
 
                 self.coords[indices] = (self.coords[indices] - coords_mean) / coords_std
             else:
                 coords_min = self.coords[indices].min(axis=0)
                 coords_max = self.coords[indices].max(axis=0)
                 # Save statistics
-                self.stats["coords"][timepoint] = {"min": coords_min, "max": coords_max}  # type: ignore
+                self.stats["coords"][timepoint] = {"min": coords_min, "max": coords_max}
                 self.coords[indices] = (self.coords[indices] - coords_min) / (
                     coords_max - coords_min
                 )
@@ -121,11 +117,11 @@ class H5ADPreprocessor:
         X_pca_std = adata.obsm["X_pca"].std(axis=0)  # noqa: N806
 
         # Save statistics
-        self.stats["X_pca"] = {"mean": X_pca_mean, "std": X_pca_std}  # type: ignore
+        self.stats["X_pca"] = {"mean": X_pca_mean, "std": X_pca_std}
         self.X_pca = (adata.obsm["X_pca"] - X_pca_mean) / X_pca_std
 
         # Save annotations for each cell.
-        self.ct = np.array(adata.obs[self.ct_column])  # type: ignore
+        self.ct = np.array(adata.obs[self.ct_column])
 
     def _compute_radius_graphs(self) -> None:
         # Compute the radius graphs for each timepoint
@@ -140,16 +136,16 @@ class H5ADPreprocessor:
 
             # Get the indices and coords;
             indices = self.timepoint_indices[timepoint]
-            coords_t = torch.Tensor(self.coords[indices]).to(self.device)  # type: ignore
+            coords_t = torch.Tensor(self.coords[indices]).to(self.device)
 
             # Fix the number of nodes per graph.
             num_neighbors, C_t_argsorted = chunked_cdist_sum_argsort(  # noqa: N806
                 coords=coords_t, radius=self.radius, chunk_size=self.chunk_size
             )
-            unique, counts = torch.unique(num_neighbors, return_counts=True)  # type: ignore
+            unique, counts = torch.unique(num_neighbors, return_counts=True)
 
             # Choose the most common N for the current radius.
-            N = unique[counts.argmax()].cpu().numpy()  # type: ignore  # noqa: N806
+            N = unique[counts.argmax()].cpu().numpy()  # noqa: N806
             self.timepoint_num_neighbors[timepoint] = N
 
             # Get the neighbor indices
@@ -178,11 +174,11 @@ class H5ADPreprocessor:
             gt = self.coords[gt_indices]
 
             pos_idx = grid_based_sampling_by_y(
-                coords=gt,  # type: ignore
+                coords=gt,
                 dx=self.dx,
                 dy=self.dy,
             )
-            self.subsampled_timepoint_idx[timepoint] = pos_idx  # type: ignore
+            self.subsampled_timepoint_idx[timepoint] = pos_idx
 
             # Validation
             subgraph_indices = np.unique(
@@ -200,7 +196,7 @@ class H5ADPreprocessor:
                 )
         # Fix nodes by upsampling
         self.test_microenvs = max([len(x) for x in self.subsampled_timepoint_idx.values()])
-        _logger.info(f"Fixing test microenvironments to {self.test_microenvs}")
+        _logger.info(f"Fixing test microenvironments to {self.test_microenvs} per slice.")
 
         # Randomly sample additional indices without the ones already present.
         for timepoint in self.timepoints_ordered:
@@ -211,19 +207,19 @@ class H5ADPreprocessor:
             if n_upsample != 0:
                 choices = [i for i in range(length) if i not in subsampled_indices]
                 choices = np.random.choice(choices, n_upsample, replace=False)
-                self.subsampled_timepoint_idx[timepoint] = np.concatenate(  # type: ignore
+                self.subsampled_timepoint_idx[timepoint] = np.concatenate(
                     [self.subsampled_timepoint_idx[timepoint], choices]
                 )
 
     def save(self, filepath: str) -> None:
         fp = Path(filepath)
 
-        ds = H5ADDatasetDataclass(  # type: ignore
+        ds = H5ADDatasetDataclass(
             # Data
-            X_pca=self.X_pca,  # type: ignore
-            coords=self.coords,  # type: ignore
-            ct=self.ct,  # type: ignore
-            PCs=self.PCs,  # type: ignore
+            X_pca=self.X_pca,
+            coords=self.coords,
+            ct=self.ct,
+            PCs=self.PCs,
             # Timepoint info
             timepoints_ordered=self.timepoints_ordered,
             timepoint_column=self.timepoint_column,
@@ -231,21 +227,21 @@ class H5ADPreprocessor:
             timepoint_indices=self.timepoint_indices,
             # Cell types
             ct_column=self.ct_column,
-            ct_ordered=self.ct_ordered,  # type: ignore
-            ct_to_int=self.ct_to_int,  # type: ignore
+            ct_ordered=self.ct_ordered,
+            ct_to_int=self.ct_to_int,
             # Radius-graph related
-            timepoint_neighboring_indices=self.timepoint_neighboring_indices,  # type: ignore
-            timepoint_num_neighbors=self.timepoint_num_neighbors,  # type: ignore
-            subsampled_timepoint_idx=self.subsampled_timepoint_idx,  # type: ignore
+            timepoint_neighboring_indices=self.timepoint_neighboring_indices,
+            timepoint_num_neighbors=self.timepoint_num_neighbors,
+            subsampled_timepoint_idx=self.subsampled_timepoint_idx,
             # Parameters
             standardize_coordinates=self.standardize_coordinates,
             radius=self.radius,
             dx=self.dx,
             dy=self.dy,
             # Stats
-            stats=self.stats,  # type: ignore
+            stats=self.stats,
             # Test info
-            test_microenvs=self.test_microenvs,  # type: ignore
+            test_microenvs=self.test_microenvs,
         )
 
         with fp.open("wb") as file:
