@@ -22,6 +22,7 @@ class MicroEnvDataModule(LightningDataModule):
         num_workers: int = 4,
     ) -> None:
         super().__init__()
+        self.seed = seed
         self.k_regions = k_regions
         self.n_microenvs_per_slice = n_microenvs_per_slice
         self.val_upsample_factor = val_upsample_factor
@@ -31,7 +32,6 @@ class MicroEnvDataModule(LightningDataModule):
 
         self.common_dataset_args = {
             "data_fp": data_fp,
-            "seed": seed,
             "ot_lambda": ot_lambda,
             "ot_method": ot_method,
             "per_pc_transforms": per_pc_transforms,
@@ -41,6 +41,7 @@ class MicroEnvDataModule(LightningDataModule):
     def prepare_data(self) -> None:
         self.train_dataset = InfiniteMicroEnvDataset(
             **self.common_dataset_args,
+            seed=self.seed,
             k_regions=self.k_regions,
             n_microenvs_per_slice=self.n_microenvs_per_slice,
         )

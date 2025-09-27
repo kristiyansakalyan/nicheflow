@@ -41,7 +41,6 @@ class MicroEnvDatasetBase(ABC):
     def __init__(
         self,
         ds: H5ADDatasetDataclass,
-        seed: int = 2025,
         ot_lambda: float = 0.1,
         ot_method: str = "exact",
         per_pc_transforms: Compose = Compose([]),
@@ -52,7 +51,6 @@ class MicroEnvDatasetBase(ABC):
         # Must be set in child classes
         self.n_microenvs_per_slice: int
 
-        self.seed = seed
         self.ot_lambda = torch.tensor(ot_lambda)
         self.ot_plan_sampler = OTPlanSampler(method=ot_method)
         self.per_pc_transforms = Compose(
@@ -184,12 +182,15 @@ class InfiniteMicroEnvDataset(IterableDataset, MicroEnvDatasetBase):
         ds = load_h5ad_dataset_dataclass(data_fp)
         super().__init__(
             ds=ds,
-            seed=seed,
             ot_lambda=ot_lambda,
             ot_method=ot_method,
             per_pc_transforms=per_pc_transforms,
             per_microenv_transforms=per_microenv_transforms,
         )
+        self.seed = seed
+        # Use a seeded generator for sampling the pairs
+        # and sampling the microenvironments within the K regions
+        self.rng = np.random.default_rng(seed)
 
         self.k_regions = k_regions
         self.n_microenvs_per_slice = n_microenvs_per_slice
@@ -236,11 +237,11 @@ class InfiniteMicroEnvDataset(IterableDataset, MicroEnvDatasetBase):
                     + f"but we sample {self.n_microenvs_per_region}. Using `replace=True`"
                     + " during sampling."
                 )
-                sampled = np.random.choice(
+                sampled = self.rng.choice(
                     region_idxs, size=self.n_microenvs_per_region, replace=True
                 )
             else:
-                sampled = np.random.choice(
+                sampled = self.rng.choice(
                     region_idxs, size=self.n_microenvs_per_region, replace=False
                 )
             selected_idxs.extend(sampled)
@@ -249,7 +250,7 @@ class InfiniteMicroEnvDataset(IterableDataset, MicroEnvDatasetBase):
 
     def _get_timepoints(self, index: int | None) -> tuple[str, str]:
         # Every time we randomly select two consecutive slices
-        pair_idx = np.random.choice(np.arange(self.num_pairs))
+        pair_idx = self.rng.integers(self.num_pairs)
         t1, t2 = self.consecutive_pairs[pair_idx]
         return t1, t2
 
@@ -274,7 +275,6 @@ class TestMicroEnvDataset(Dataset, MicroEnvDatasetBase):
     def __init__(
         self,
         data_fp: str,
-        seed: int = 2025,
         ot_lambda: float = 0.1,
         ot_method: str = "exact",
         per_pc_transforms: Compose = Compose([]),
@@ -284,7 +284,6 @@ class TestMicroEnvDataset(Dataset, MicroEnvDatasetBase):
         ds = load_h5ad_dataset_dataclass(data_fp)
         super().__init__(
             ds=ds,
-            seed=seed,
             ot_lambda=ot_lambda,
             ot_method=ot_method,
             per_pc_transforms=per_pc_transforms,
