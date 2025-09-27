@@ -38,6 +38,9 @@ class H5ADDatasetDataclass:
     # === Statistics == #
     stats: dict[str, dict[str, dict[str, np.ndarray]] | dict[str, np.ndarray]]
 
+    # === Test-related == #
+    test_microenvs: int
+
 
 def load_h5ad_dataset_dataclass(filepath: str) -> H5ADDatasetDataclass:
     fp = Path(filepath)

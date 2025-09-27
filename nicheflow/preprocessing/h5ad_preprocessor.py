@@ -28,7 +28,6 @@ class H5ADPreprocessor:
         dy: float = 0.2,
         device: str = "cpu",
         chunk_size: int = 1000,
-        fixed_microenvironments: bool = False,
     ) -> None:
         self.timepoint_column = timepoint_column
         self.ct_column = cell_type_column
@@ -39,7 +38,6 @@ class H5ADPreprocessor:
         self.dy = dy
         self.chunk_size = chunk_size
         self.device = torch.device(device)
-        self.fixed_nodes = fixed_microenvironments
 
         # These will be set by the preprocessing
         self.timepoints = None
@@ -63,6 +61,9 @@ class H5ADPreprocessor:
             # }
         }
         self.timepoint_num_neighbors: dict[float, int] = {}
+
+        # Test microenvironments per slice
+        self.test_microenvs = None
 
         # Statistics that are needed to reverse the normalizations
         self.stats = {"coords": {}, "X_pca": {}}  # type: ignore
@@ -197,24 +198,22 @@ class H5ADPreprocessor:
                     "You should change the values for `dx` and `dy`."
                     + f"GT: {len(gt)} | Microenvironment cover: {len(subgraph_indices)}"
                 )
+        # Fix nodes by upsampling
+        self.test_microenvs = max([len(x) for x in self.subsampled_timepoint_idx.values()])
+        _logger.info(f"Fixing test microenvironments to {self.test_microenvs}")
 
-        if self.fixed_nodes:
-            # Fix nodes by upsampling
-            max_nodes = max([len(x) for x in self.subsampled_timepoint_idx.values()])
-            _logger.info(f"Fixing nodes to {max_nodes}")
+        # Randomly sample additional indices without the ones already present.
+        for timepoint in self.timepoints_ordered:
+            length = len(self.timepoint_neighboring_indices[timepoint])
+            subsampled_indices = self.subsampled_timepoint_idx[timepoint]
+            n_upsample = max(self.test_microenvs - len(subsampled_indices), 0)
 
-            # Randomly sample additional indices without the ones already present.
-            for timepoint in self.timepoints_ordered:
-                length = len(self.timepoint_neighboring_indices[timepoint])
-                subsampled_indices = self.subsampled_timepoint_idx[timepoint]
-                n_upsample = max(max_nodes - len(subsampled_indices), 0)
-
-                if n_upsample != 0:
-                    choices = [i for i in range(length) if i not in subsampled_indices]
-                    choices = np.random.choice(choices, n_upsample, replace=False)
-                    self.subsampled_timepoint_idx[timepoint] = np.concatenate(  # type: ignore
-                        [self.subsampled_timepoint_idx[timepoint], choices]
-                    )
+            if n_upsample != 0:
+                choices = [i for i in range(length) if i not in subsampled_indices]
+                choices = np.random.choice(choices, n_upsample, replace=False)
+                self.subsampled_timepoint_idx[timepoint] = np.concatenate(  # type: ignore
+                    [self.subsampled_timepoint_idx[timepoint], choices]
+                )
 
     def save(self, filepath: str) -> None:
         fp = Path(filepath)
@@ -245,6 +244,8 @@ class H5ADPreprocessor:
             dy=self.dy,
             # Stats
             stats=self.stats,  # type: ignore
+            # Test info
+            test_microenvs=self.test_microenvs,  # type: ignore
         )
 
         with fp.open("wb") as file:

@@ -9,10 +9,27 @@ _logger = RankedLogger(__name__, rank_zero_only=True)
 
 
 def instantiate_callbacks(callbacks_cfg: DictConfig) -> list[Callback]:
-    """Instantiates callbacks from config.
+    """
+    Instantiate Lightning callbacks from a Hydra configuration.
 
-    :param callbacks_cfg: A DictConfig object containing callback configurations.
-    :return: A list of instantiated callbacks.
+    This utility reads a DictConfig of callbacks (each with a `_target_` key) and uses
+    Hydra to instantiate them. It gracefully handles empty or invalid configurations.
+
+    Parameters
+    ----------
+    callbacks_cfg : DictConfig
+        Hydra configuration containing callback definitions. Each item should
+        be a DictConfig with a `_target_` field specifying the callback class.
+
+    Returns
+    -------
+    list of Callback
+        List of instantiated Lightning callbacks.
+
+    Raises
+    ------
+    TypeError
+        If `callbacks_cfg` is not a DictConfig.
     """
     callbacks: list[Callback] = []
 
@@ -32,16 +49,33 @@ def instantiate_callbacks(callbacks_cfg: DictConfig) -> list[Callback]:
 
 
 def instantiate_loggers(logger_cfg: DictConfig) -> list[Logger]:
-    """Instantiates loggers from config.
-
-    :param logger_cfg: A DictConfig object containing logger configurations.
-    :return: A list of instantiated loggers.
     """
-    logger: list[Logger] = []
+    Instantiate Lightning loggers from a Hydra configuration.
+
+    This utility reads a DictConfig of loggers (each with a `_target_` key) and uses
+    Hydra to instantiate them. It handles empty configs or missing `_target_` keys gracefully.
+
+    Parameters
+    ----------
+    logger_cfg : DictConfig
+        Hydra configuration containing logger definitions. Each item should
+        be a DictConfig with a `_target_` field specifying the logger class.
+
+    Returns
+    -------
+    list of Logger
+        List of instantiated Lightning loggers.
+
+    Raises
+    ------
+    TypeError
+        If `logger_cfg` is not a DictConfig.
+    """
+    loggers: list[Logger] = []
 
     if not logger_cfg:
         _logger.warning("No logger configs found! Skipping...")
-        return logger
+        return loggers
 
     if not isinstance(logger_cfg, DictConfig):
         raise TypeError("Logger config must be a DictConfig!")
@@ -49,6 +83,6 @@ def instantiate_loggers(logger_cfg: DictConfig) -> list[Logger]:
     for _, lg_conf in logger_cfg.items():
         if isinstance(lg_conf, DictConfig) and "_target_" in lg_conf:
             _logger.info(f"Instantiating logger <{lg_conf._target_}>")
-            logger.append(hydra.utils.instantiate(lg_conf))
+            loggers.append(hydra.utils.instantiate(lg_conf))
 
-    return logger
+    return loggers
