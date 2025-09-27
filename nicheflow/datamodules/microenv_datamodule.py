@@ -1,6 +1,6 @@
 from lightning import LightningDataModule
 from torch.utils.data import DataLoader
-from torch_geometric.transforms import BaseTransform, Compose
+from torch_geometric.transforms import Compose
 
 from nicheflow.datasets import InfiniteMicroEnvDataset, TestMicroEnvDataset
 from nicheflow.utils import collate_function_transformer
@@ -15,7 +15,7 @@ class MicroEnvDataModule(LightningDataModule):
         n_microenvs_per_slice: int = 256,
         ot_lambda: float = 0.1,
         ot_method: str = "exact",
-        per_pc_transforms: list[BaseTransform] = [],
+        per_pc_transforms: Compose = Compose([]),
         per_microenv_transforms: Compose = Compose([]),
         val_upsample_factor: int = 1,
         train_batch_size: int = 16,

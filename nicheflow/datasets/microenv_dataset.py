@@ -27,14 +27,14 @@ class MicroEnvTrainItem(TypedDict):
     t2_ohe: torch.Tensor
 
 
-class MicroEnvTrainBatch(TypedDict, MicroEnvTrainItem):
-    mask_t1: torch.Tensor
-    mask_t2: torch.Tensor
-
-
 class MicroEnvValItem(TypedDict, MicroEnvTrainItem):
     global_pos_t2: torch.Tensor
     global_ct_t2: torch.Tensor
+
+
+class MicroEnvTrainBatch(TypedDict, MicroEnvTrainItem):
+    mask_t1: torch.Tensor
+    mask_t2: torch.Tensor
 
 
 class MicroEnvDatasetBase(ABC):
@@ -48,6 +48,9 @@ class MicroEnvDatasetBase(ABC):
         per_microenv_transforms: Compose = Compose([]),
     ) -> None:
         super().__init__()
+
+        # Must be set in child classes
+        self.n_microenvs_per_slice: int
 
         self.seed = seed
         self.ot_lambda = torch.tensor(ot_lambda)
@@ -69,6 +72,18 @@ class MicroEnvDatasetBase(ABC):
 
         # Save the important attributes from the dataset class
         self.timepoint_neighboring_indices = ds.timepoint_neighboring_indices
+
+    @abstractmethod
+    def _sample_microenvs_idxs(self, timepoint: str) -> list[list[int]]:
+        raise NotImplementedError(
+            "The method `_sample_microenvs_idxs` must be implemented in child classes!"
+        )
+
+    @abstractmethod
+    def _get_timepoints(self, index: int | None) -> tuple[str, str]:
+        raise NotImplementedError(
+            "The method `_get_timepoints` must be implemented in child classes!"
+        )
 
     def _compute_timepoint_pc(self, ds: H5ADDatasetDataclass) -> None:
         _logger.info("Creating per timepoint PyTorch Geoemtric Data objects")
@@ -152,18 +167,6 @@ class MicroEnvDatasetBase(ABC):
         )
 
         return microenvs_t1, microenvs_t2, t1, t2
-
-    @abstractmethod
-    def _sample_microenvs_idxs(self, timepoint: str) -> list[list[int]]:
-        raise NotImplementedError(
-            "The method `_sample_microenvs_idxs` must be implemented in child classes!"
-        )
-
-    @abstractmethod
-    def _get_timepoints(self, index: int | None) -> tuple[str, str]:
-        raise NotImplementedError(
-            "The method `_get_timepoints` must be implemented in child classes!"
-        )
 
 
 class InfiniteMicroEnvDataset(IterableDataset, MicroEnvDatasetBase):
