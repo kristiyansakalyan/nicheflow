@@ -8,6 +8,7 @@ from torch import Tensor, nn
 from torch.optim import Optimizer
 from torch.optim.lr_scheduler import LRScheduler
 
+from nicheflow.datasets import CellTypeBatch
 from nicheflow.models import CTClassifierNet
 from nicheflow.utils import render_and_close
 
@@ -113,7 +114,7 @@ class CellTypeClassification(LightningModule):
         self.val_plot_metrics = plot_metrics.clone(prefix="val/")
         self.test_plot_metrics = plot_metrics.clone(prefix="test/")
 
-    def training_step(self, batch: dict[str, Tensor], _) -> dict[str, Tensor]:
+    def training_step(self, batch: CellTypeBatch, _) -> dict[str, Tensor]:
         logits = self.net(batch["X"])
         loss = self.loss(logits, batch["y"])
 
@@ -123,7 +124,7 @@ class CellTypeClassification(LightningModule):
 
     def eval_step(
         self,
-        batch: dict[str, Tensor],
+        batch: CellTypeBatch,
         metrics: tm.MetricCollection,
         plot_metrics: tm.MetricCollection,
     ) -> None:
@@ -131,10 +132,10 @@ class CellTypeClassification(LightningModule):
         self.log_dict(metrics(logits, batch["y"]))
         plot_metrics.update(logits, batch["y"])
 
-    def validation_step(self, batch: dict[str, Tensor], _) -> None:
+    def validation_step(self, batch: CellTypeBatch, _) -> None:
         self.eval_step(batch, self.val_metrics, self.val_plot_metrics)
 
-    def test_step(self, batch: dict[str, Tensor], _) -> None:
+    def test_step(self, batch: CellTypeBatch, _) -> None:
         self.eval_step(batch, self.test_metrics, self.test_plot_metrics)
 
     def configure_optimizers(self) -> Any:

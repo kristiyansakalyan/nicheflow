@@ -1,9 +1,10 @@
 from lightning import LightningDataModule
 from torch.utils.data import DataLoader
 from torch_geometric.transforms import Compose
+from torchcfm import OTPlanSampler
 
 from nicheflow.datasets import InfiniteMicroEnvDataset, TestMicroEnvDataset
-from nicheflow.utils import collate_function_transformer
+from nicheflow.utils import microenv_train_collate, microenv_val_collate
 
 
 class MicroEnvDataModule(LightningDataModule):
@@ -14,7 +15,7 @@ class MicroEnvDataModule(LightningDataModule):
         k_regions: int = 64,
         n_microenvs_per_slice: int = 256,
         ot_lambda: float = 0.1,
-        ot_method: str = "exact",
+        ot_plan_sampler: OTPlanSampler = OTPlanSampler(method="exact"),
         per_pc_transforms: Compose = Compose([]),
         per_microenv_transforms: Compose = Compose([]),
         val_upsample_factor: int = 1,
@@ -33,7 +34,7 @@ class MicroEnvDataModule(LightningDataModule):
         self.common_dataset_args = {
             "data_fp": data_fp,
             "ot_lambda": ot_lambda,
-            "ot_method": ot_method,
+            "ot_plan_sampler": ot_plan_sampler,
             "per_pc_transforms": per_pc_transforms,
             "per_microenv_transforms": per_microenv_transforms,
         }
@@ -56,7 +57,7 @@ class MicroEnvDataModule(LightningDataModule):
             batch_size=self.train_batch_size,
             num_workers=self.num_workers,
             pin_memory=True,
-            collate_fn=collate_function_transformer,
+            collate_fn=microenv_train_collate,
         )
 
     def val_dataloader(self) -> DataLoader:
@@ -65,5 +66,7 @@ class MicroEnvDataModule(LightningDataModule):
             batch_size=1,
             num_workers=self.num_workers,
             shuffle=False,
-            pin_memory=True,
+            # TODO: Why is it an issue?
+            # pin_memory=True,
+            collate_fn=microenv_val_collate,
         )

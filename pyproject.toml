@@ -29,6 +29,7 @@ hydra-core = "^1.3.2"
 hydra-submitit-launcher = "^1.2.0"
 wandb = "^0.22.0"
 torchcfm = "^1.0.7"
+torchdyn = "^1.0.6"
 
 
 [tool.poetry.group.dev.dependencies]

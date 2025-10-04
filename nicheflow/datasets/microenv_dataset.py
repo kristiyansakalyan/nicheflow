@@ -1,73 +1,40 @@
-from abc import ABC, abstractmethod
-from collections.abc import Iterator
-from typing import TypedDict
+from abc import abstractmethod
+from collections.abc import Generator
 
 import numpy as np
 import torch
-from sklearn.cluster import KMeans
 from torch.utils.data import Dataset, IterableDataset
 from torch_geometric.data import Data
 from torch_geometric.transforms import Compose
 from torchcfm import OTPlanSampler
 
+from nicheflow.datasets.st_dataset_base import STDatasetBase, STTrainDataItem, STValDataItem
 from nicheflow.preprocessing import H5ADDatasetDataclass, load_h5ad_dataset_dataclass
-from nicheflow.transforms import OHESlide
+from nicheflow.utils.datasets import create_kmeans_regions, init_worker_rng
 from nicheflow.utils.log import RankedLogger
 
 _logger = RankedLogger(__name__, rank_zero_only=True)
 
 
-class MicroEnvTrainItem(TypedDict):
-    X_t1: torch.Tensor
-    pos_t1: torch.Tensor
-    t1_ohe: torch.Tensor
-
-    X_t2: torch.Tensor
-    pos_t2: torch.Tensor
-    t2_ohe: torch.Tensor
-
-
-class MicroEnvValItem(TypedDict, MicroEnvTrainItem):
-    global_pos_t2: torch.Tensor
-    global_ct_t2: torch.Tensor
-
-
-class MicroEnvTrainBatch(TypedDict, MicroEnvTrainItem):
-    mask_t1: torch.Tensor
-    mask_t2: torch.Tensor
-
-
-class MicroEnvDatasetBase(ABC):
+class MicroEnvDatasetBase(STDatasetBase):
     def __init__(
         self,
         ds: H5ADDatasetDataclass,
+        ot_plan_sampler: OTPlanSampler = OTPlanSampler(method="exact"),
         ot_lambda: float = 0.1,
-        ot_method: str = "exact",
         per_pc_transforms: Compose = Compose([]),
         per_microenv_transforms: Compose = Compose([]),
     ) -> None:
-        super().__init__()
+        super().__init__(
+            ds=ds,
+            ot_plan_sampler=ot_plan_sampler,
+            ot_lambda=ot_lambda,
+            per_pc_transforms=per_pc_transforms,
+        )
 
         # Must be set in child classes
         self.n_microenvs_per_slice: int
-
-        self.ot_lambda = torch.tensor(ot_lambda)
-        self.ot_plan_sampler = OTPlanSampler(method=ot_method)
-        self.per_pc_transforms = Compose(
-            [*per_pc_transforms.transforms, OHESlide(size=len(ds.timepoints_ordered))]
-        )
         self.per_microenv_transforms = per_microenv_transforms
-
-        # Create per timepoint global point clouds
-        self.timepoint_pc: dict[str, Data] = {}
-        self._compute_timepoint_pc(ds=ds)
-
-        # Create (t_i, t_{i+1}) pairs
-        self.consecutive_pairs: list[tuple[str, str]] = list(
-            zip(ds.timepoints_ordered[:-1], ds.timepoints_ordered[1:], strict=False)
-        )
-        self.num_pairs = len(self.consecutive_pairs)
-
         # Save the important attributes from the dataset class
         self.timepoint_neighboring_indices = ds.timepoint_neighboring_indices
 
@@ -82,22 +49,6 @@ class MicroEnvDatasetBase(ABC):
         raise NotImplementedError(
             "The method `_get_timepoints` must be implemented in child classes!"
         )
-
-    def _compute_timepoint_pc(self, ds: H5ADDatasetDataclass) -> None:
-        _logger.info("Creating per timepoint PyTorch Geoemtric Data objects")
-
-        ct_get_vec = np.vectorize(ds.ct_to_int.get)
-
-        for timepoint in ds.timepoints_ordered:
-            indices = ds.timepoint_indices[timepoint]
-            self.timepoint_pc[timepoint] = self.per_pc_transforms(
-                Data(
-                    x=torch.Tensor(ds.X_pca[indices]),
-                    pos=torch.Tensor(ds.coords[indices]),
-                    ct=torch.Tensor(ct_get_vec(ds.ct[indices])),
-                    t_ohe=torch.Tensor([ds.timepoint_to_int[timepoint]]),
-                )
-            )
 
     def _mini_batch_ot(
         self, microenvs_t1: list[Data], microenvs_t2: list[Data]
@@ -138,7 +89,7 @@ class MicroEnvDatasetBase(ABC):
 
         return resampled_microenvs_t1, resampled_microenvs_t2
 
-    def _get_microenvs_t1_t2(self, index: int) -> tuple[list[Data], list[Data], str, str]:
+    def _get_microenvs_t1_t2(self, index: int | None) -> tuple[list[Data], list[Data], str, str]:
         t1, t2 = self._get_timepoints(index=index)
 
         # Sample microenvironment centroids uniformly over the defined spatial regions
@@ -174,30 +125,31 @@ class InfiniteMicroEnvDataset(IterableDataset, MicroEnvDatasetBase):
         seed: int = 2025,
         k_regions: int = 64,
         n_microenvs_per_slice: int = 256,
+        ot_plan_sampler: OTPlanSampler = OTPlanSampler(method="exact"),
         ot_lambda: float = 0.1,
-        ot_method: str = "exact",
         per_pc_transforms: Compose = Compose([]),
         per_microenv_transforms: Compose = Compose([]),
     ) -> None:
         ds = load_h5ad_dataset_dataclass(data_fp)
         super().__init__(
             ds=ds,
+            ot_plan_sampler=ot_plan_sampler,
             ot_lambda=ot_lambda,
-            ot_method=ot_method,
             per_pc_transforms=per_pc_transforms,
             per_microenv_transforms=per_microenv_transforms,
         )
         self.seed = seed
         # Use a seeded generator for sampling the pairs
         # and sampling the microenvironments within the K regions
-        self.rng = np.random.default_rng(seed)
+        self.rng = None
 
         self.k_regions = k_regions
         self.n_microenvs_per_slice = n_microenvs_per_slice
 
         # Create KMeans regions
-        self.timepoint_regions_to_idx: dict[str, dict[int, list[int]]] = {}
-        self._create_kmeans_regions(ds=ds)
+        self.timepoint_regions_to_idx: dict[str, dict[int, list[int]]] = create_kmeans_regions(
+            ds=ds, timepoint_pc=self.timepoint_pc, k_regions=self.k_regions, seed=self.seed
+        )
 
         # Precompute the number of microenvironments we will sample per region
         self.n_microenvs_per_region = self.n_microenvs_per_slice // self.k_regions
@@ -206,21 +158,9 @@ class InfiniteMicroEnvDataset(IterableDataset, MicroEnvDatasetBase):
                 "The number of microenvironments per slice must be larger than the number of regions!"
                 + f"Got {self.n_microenvs_per_slice} microenvironments but only {self.k_regions} regions."
             )
-            _logger.info(f"Setting the microenvironments per slice to {self.k_regions}")
-            self.n_microenvs_per_slice = self.k_regions
+            _logger.warning("Setting the microenvironments per slice to 1")
+            self.n_microenvs_per_slice = k_regions
             self.n_microenvs_per_region = 1
-
-    def _create_kmeans_regions(self, ds: H5ADDatasetDataclass) -> None:
-        for timepoint in ds.timepoints_ordered:
-            coords = self.timepoint_pc[timepoint].pos.numpy()
-            # Cluster the shape in regions
-            kmeans = KMeans(n_clusters=self.k_regions, random_state=self.seed)
-            region_labels = kmeans.fit_predict(coords)
-            # Save a map from each region to the indices
-            region_to_idxs = {
-                i: np.argwhere(region_labels == i).squeeze() for i in range(self.k_regions)
-            }
-            self.timepoint_regions_to_idx[timepoint] = region_to_idxs
 
     def _sample_microenvs_idxs(self, timepoint: str) -> list[list[int]]:
         # Extract the region to centroids map for a slice at time t
@@ -254,7 +194,8 @@ class InfiniteMicroEnvDataset(IterableDataset, MicroEnvDatasetBase):
         t1, t2 = self.consecutive_pairs[pair_idx]
         return t1, t2
 
-    def __iter__(self) -> Iterator[MicroEnvTrainItem]:
+    def __iter__(self) -> Generator[STTrainDataItem]:
+        self.rng = init_worker_rng(seed=self.seed)
         while True:
             # We use index = None because in the infinite training dataset, we are
             # doing random sampling.
@@ -275,8 +216,8 @@ class TestMicroEnvDataset(Dataset, MicroEnvDatasetBase):
     def __init__(
         self,
         data_fp: str,
+        ot_plan_sampler: OTPlanSampler = OTPlanSampler(method="exact"),
         ot_lambda: float = 0.1,
-        ot_method: str = "exact",
         per_pc_transforms: Compose = Compose([]),
         per_microenv_transforms: Compose = Compose([]),
         upsample_factor: int = 1,
@@ -284,8 +225,8 @@ class TestMicroEnvDataset(Dataset, MicroEnvDatasetBase):
         ds = load_h5ad_dataset_dataclass(data_fp)
         super().__init__(
             ds=ds,
+            ot_plan_sampler=ot_plan_sampler,
             ot_lambda=ot_lambda,
-            ot_method=ot_method,
             per_pc_transforms=per_pc_transforms,
             per_microenv_transforms=per_microenv_transforms,
         )
@@ -309,10 +250,14 @@ class TestMicroEnvDataset(Dataset, MicroEnvDatasetBase):
             raise ValueError("Index in the TestMicroEnvDataset must not be None.")
 
         pair_idx = index // self.upsample_factor
+
+        if pair_idx >= len(self.consecutive_pairs):
+            raise ValueError(f"Index `{index}` is out of bounds!")
+
         t1, t2 = self.consecutive_pairs[pair_idx]
         return t1, t2
 
-    def __getitem__(self, index: int) -> MicroEnvValItem:
+    def __getitem__(self, index: int) -> STValDataItem:
         microenvs_t1, microenvs_t2, t1, t2 = self._get_microenvs_t1_t2(index=index)
         return {
             # First slice
