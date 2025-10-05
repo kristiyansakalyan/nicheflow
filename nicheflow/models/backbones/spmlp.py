@@ -43,14 +43,14 @@ class SinglePointMLP(nn.Module):
 
     def forward(
         self,
-        x_cond: Float[Tensor, "B D_pca"],
-        pos_cond: Float[Tensor, "B D_coord"],
-        ohe_cond: Float[Tensor, "B D_ohe"],
-        x_target: Float[Tensor, "B D_pca"],
-        pos_target: Float[Tensor, "B D_coord"],
-        ohe_target: Float[Tensor, "B D_ohe"],
+        x_cond: Float[Tensor, "B N D_pca"],
+        pos_cond: Float[Tensor, "B N D_coord"],
+        ohe_cond: Float[Tensor, "B N D_ohe"],
+        x_target: Float[Tensor, "B N D_pca"],
+        pos_target: Float[Tensor, "B N D_coord"],
+        ohe_target: Float[Tensor, "B N D_ohe"],
         t: Float[Tensor, "B"],
-    ) -> tuple[Float[Tensor, "B D_pca"], Float[Tensor, "B D_coord"]]:
+    ) -> tuple[Float[Tensor, "B N D_pca"], Float[Tensor, "B N D_coord"]]:
         # Condition embeddings
         x_emb_cond = self.emb_x(x_cond)
         coord_emb_cond = self.emb_coord(pos_cond)
@@ -63,6 +63,7 @@ class SinglePointMLP(nn.Module):
 
         # Time embedding
         t_emb = self.time_embedding(t)
+        t_emb = t_emb[:, None, :].expand(-1, x_emb_cond.size(1), -1)
 
         # Concatenate all embeddings
         z = torch.cat(

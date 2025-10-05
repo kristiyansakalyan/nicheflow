@@ -64,11 +64,7 @@ class VFM(FlowVariant):
     def get_vf(
         self, x_t: Tensor, pos_t: Tensor, x_pred: Tensor, pos_pred: Tensor, t: Tensor
     ) -> tuple[Tensor, Tensor]:
-        # TODO: Is there a better way?
-        if x_t.ndim == 3:
-            t_unsq = t[:, None, None]
-        else:
-            t_unsq = t[:, None]
+        t_unsq = t[:, None, None]
 
         x_vf = (x_pred - x_t) / (1 - t_unsq + EPS)
         pos_vf = (pos_pred - pos_t) / (1 - t_unsq + EPS)
@@ -132,12 +128,7 @@ class BaseFlow(nn.Module, Generic[BackboneType], ABC):
         X_t2_0 = torch.randn_like(batch["X_t2"])
         pos_t2_0 = torch.randn_like(batch["pos_t2"])
 
-        # TODO: Is there a better way?
-        # Interpolate
-        if X_t2_0.ndim == 3:
-            t_unsq = t[:, None, None]
-        else:
-            t_unsq = t[:, None]
+        t_unsq = t[:, None, None]
         X_t2_t = self.interpolate(X_t2_0, batch["X_t2"], t_unsq)
         pos_t2_t = self.interpolate(pos_t2_0, batch["pos_t2"], t_unsq)
 

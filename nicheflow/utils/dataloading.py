@@ -204,7 +204,7 @@ def microenv_val_collate(batch: list[STValDataItem]) -> STValDataItem:
     }
 
 
-def rpc_transformer_train_collate(batch: list[STTrainDataItem]) -> STTrainDataItem:
+def sp_rpc_train_collate(batch: list[STTrainDataItem]) -> STTrainDataItem:
     # We know that we would have the same number of points in both
     # time 1 and time 2 => We just need to stack.
     X_t1 = torch.stack([el["X_t1"] for el in batch], dim=0)
@@ -229,7 +229,7 @@ def rpc_transformer_train_collate(batch: list[STTrainDataItem]) -> STTrainDataIt
     }
 
 
-def rpc_transformer_val_collate(batch: list[STValDataItem]) -> STValDataItem:
+def sp_rpc_val_collate(batch: list[STValDataItem]) -> STValDataItem:
     if len(batch) != 1:
         raise ValueError(
             f"The validation batch should always contain one item. Got {len(batch)} items.F"
@@ -250,55 +250,6 @@ def rpc_transformer_val_collate(batch: list[STValDataItem]) -> STValDataItem:
         "X_t2": X_t2,
         "pos_t1": pos_t1,
         "pos_t2": pos_t2,
-        "t1_ohe": t1_ohe,
-        "t2_ohe": t2_ohe,
-        "global_pos_t2": sample["global_pos_t2"],
-        "global_ct_t2": sample["global_ct_t2"],
-    }
-
-
-def single_point_train_collate(batch: list[STTrainDataItem]) -> STTrainDataItem:
-    # For the single point flow, we need to simply concatenate
-    # all data as the model handles each point independently.
-    X_t1 = torch.cat([el["X_t1"] for el in batch], dim=0)
-    X_t2 = torch.cat([el["X_t2"] for el in batch], dim=0)
-
-    pos_t1 = torch.cat([el["pos_t1"] for el in batch], dim=0)
-    pos_t2 = torch.cat([el["pos_t2"] for el in batch], dim=0)
-
-    t1_ohe = torch.cat(
-        [el["t1_ohe"][None, :].expand(el["X_t1"].size(0), -1) for el in batch], dim=0
-    )
-    t2_ohe = torch.cat(
-        [el["t2_ohe"][None, :].expand(el["X_t2"].size(0), -1) for el in batch], dim=0
-    )
-
-    return {
-        "X_t1": X_t1,
-        "X_t2": X_t2,
-        "pos_t1": pos_t1,
-        "pos_t2": pos_t2,
-        "t1_ohe": t1_ohe,
-        "t2_ohe": t2_ohe,
-    }
-
-
-def single_point_val_collate(batch: list[STValDataItem]) -> STValDataItem:
-    if len(batch) != 1:
-        raise ValueError(
-            f"The validation batch should always contain one item. Got {len(batch)} items.F"
-        )
-
-    sample = batch[0]
-
-    t1_ohe = sample["t1_ohe"][None, :].expand(sample["X_t1"].size(0), -1)
-    t2_ohe = sample["t1_ohe"][None, :].expand(sample["X_t2"].size(0), -1)
-
-    return {
-        "X_t1": sample["X_t1"],
-        "X_t2": sample["X_t2"],
-        "pos_t1": sample["pos_t1"],
-        "pos_t2": sample["pos_t2"],
         "t1_ohe": t1_ohe,
         "t2_ohe": t2_ohe,
         "global_pos_t2": sample["global_pos_t2"],

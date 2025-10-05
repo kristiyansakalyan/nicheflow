@@ -66,7 +66,6 @@ class MicroEnvDataModule(LightningDataModule):
             batch_size=1,
             num_workers=self.num_workers,
             shuffle=False,
-            # TODO: Why is it an issue?
-            # pin_memory=True,
+            pin_memory=True,
             collate_fn=microenv_val_collate,
         )
