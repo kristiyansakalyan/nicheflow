@@ -51,7 +51,7 @@ class BaseRPCDataModule(LightningDataModule):
             pin_memory=True,
         )
 
-    def val_dataloader(self) -> DataLoader:
+    def eval_dl(self) -> DataLoader:
         return DataLoader(
             dataset=self.test_dataset,
             batch_size=1,
@@ -60,6 +60,12 @@ class BaseRPCDataModule(LightningDataModule):
             collate_fn=sp_rpc_val_collate,
             pin_memory=True,
         )
+
+    def val_dataloader(self) -> DataLoader:
+        return self.eval_dl()
+
+    def test_dataloader(self) -> DataLoader:
+        return self.eval_dl()
 
 
 class RPCDataModule(BaseRPCDataModule):

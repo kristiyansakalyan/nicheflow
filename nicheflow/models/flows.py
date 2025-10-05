@@ -8,7 +8,7 @@ from torchdyn.core import NeuralODE
 
 from nicheflow.datasets import STTrainDataBatch, STValDataItem
 from nicheflow.models.backbones import PointCloudTransformer, SinglePointMLP
-from nicheflow.models.losses import CFMLoss, FlowLoss, GLVFMLoss, GVFMLoss
+from nicheflow.models.losses import CFMLoss, FlowLoss, FlowLosses, GLVFMLoss, GVFMLoss
 
 BackboneType = TypeVar("BackboneType", bound=nn.Module)
 VFMObjective = Literal["GVFM", "GLVFM"]
@@ -120,7 +120,7 @@ class BaseFlow(nn.Module, Generic[BackboneType], ABC):
     def interpolate(self, x0: Tensor, x1: Tensor, t: Tensor) -> Tensor:
         return (t * x1) + ((1 - t) * x0)
 
-    def loss(self, batch: STTrainDataBatch) -> Tensor | dict[str, Tensor]:
+    def loss(self, batch: STTrainDataBatch) -> FlowLosses:
         B = batch["X_t1"].size(0)
         t = torch.rand(B, device=batch["X_t1"].device)
 

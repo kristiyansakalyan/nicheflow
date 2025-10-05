@@ -164,6 +164,7 @@ class PointCloudTransformer(nn.Module):
     ) -> None:
         super().__init__()
         self.pca_dim = pca_dim
+        self.ohe_dim = ohe_dim
 
         # Recalculate the embedding dimension
         embed_dim = (3 * num_heads) * (embed_dim // (3 * num_heads))

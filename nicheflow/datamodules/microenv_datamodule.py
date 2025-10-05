@@ -60,7 +60,7 @@ class MicroEnvDataModule(LightningDataModule):
             collate_fn=microenv_train_collate,
         )
 
-    def val_dataloader(self) -> DataLoader:
+    def eval_dl(self) -> DataLoader:
         return DataLoader(
             dataset=self.test_dataset,
             batch_size=1,
@@ -69,3 +69,9 @@ class MicroEnvDataModule(LightningDataModule):
             pin_memory=True,
             collate_fn=microenv_val_collate,
         )
+
+    def val_dataloader(self) -> DataLoader:
+        return self.eval_dl()
+
+    def test_dataloader(self) -> DataLoader:
+        return self.eval_dl()

@@ -20,6 +20,7 @@ class SinglePointMLP(nn.Module):
     ) -> None:
         super().__init__()
         self.pca_dim = pca_dim
+        self.ohe_dim = ohe_dim
 
         # Embedding layers
         self.emb_x = nn.Linear(pca_dim, hidden_dim)
