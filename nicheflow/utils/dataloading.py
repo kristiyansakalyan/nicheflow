@@ -90,10 +90,12 @@ def stack_and_expand_ohe(
     """
     bs = len(batch)
     ohe = torch.stack([sample[key] for sample in batch], dim=0)  # (bs, D)
+    # Clone to pin memory
     return (
         ohe[:, None, None, :]  # (bs, 1, 1, D)
         .expand(bs, n_microenvs, n_points, -1)  # (bs, n_microenvs, n_points, D)
         .reshape(bs * n_microenvs, n_points, -1)  # (bs * n_microenvs, n_points, D)
+        .clone()
     )
 
 
@@ -185,11 +187,16 @@ def microenv_val_collate(batch: list[STValDataItem]) -> STValDataItem:
 
     sample = batch[0]
 
-    t1_ohe = sample["t1_ohe"][None, None, :].expand(
-        sample["X_t1"].size(0), sample["X_t1"].size(1), -1
+    # Clone to pin memory
+    t1_ohe = (
+        sample["t1_ohe"][None, None, :]
+        .expand(sample["X_t1"].size(0), sample["X_t1"].size(1), -1)
+        .clone()
     )
-    t2_ohe = sample["t2_ohe"][None, None, :].expand(
-        sample["X_t2"].size(0), sample["X_t2"].size(1), -1
+    t2_ohe = (
+        sample["t2_ohe"][None, None, :]
+        .expand(sample["X_t2"].size(0), sample["X_t2"].size(1), -1)
+        .clone()
     )
 
     return {
@@ -216,8 +223,17 @@ def sp_rpc_train_collate(batch: list[STTrainDataItem]) -> STTrainDataItem:
     # We also need to expand the t1 and t2 ohes
     bs, n_cells = X_t1.shape[:2]
 
-    t1_ohe = torch.stack([el["t1_ohe"] for el in batch], dim=0)[:, None, :].expand(bs, n_cells, -1)
-    t2_ohe = torch.stack([el["t2_ohe"] for el in batch], dim=0)[:, None, :].expand(bs, n_cells, -1)
+    # Clone to pin memory
+    t1_ohe = (
+        torch.stack([el["t1_ohe"] for el in batch], dim=0)[:, None, :]
+        .expand(bs, n_cells, -1)
+        .clone()
+    )
+    t2_ohe = (
+        torch.stack([el["t2_ohe"] for el in batch], dim=0)[:, None, :]
+        .expand(bs, n_cells, -1)
+        .clone()
+    )
 
     return {
         "X_t1": X_t1,
@@ -242,8 +258,9 @@ def sp_rpc_val_collate(batch: list[STValDataItem]) -> STValDataItem:
     pos_t1 = sample["pos_t1"].unsqueeze(0)
     pos_t2 = sample["pos_t2"].unsqueeze(0)
 
-    t1_ohe = sample["t1_ohe"][None, None, :].expand(X_t1.size(0), X_t1.size(1), -1)
-    t2_ohe = sample["t2_ohe"][None, None, :].expand(X_t2.size(0), X_t2.size(1), -1)
+    # Clone to pin memory
+    t1_ohe = sample["t1_ohe"][None, None, :].expand(X_t1.size(0), X_t1.size(1), -1).clone()
+    t2_ohe = sample["t2_ohe"][None, None, :].expand(X_t2.size(0), X_t2.size(1), -1).clone()
 
     return {
         "X_t1": X_t1,

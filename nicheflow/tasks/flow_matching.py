@@ -1,4 +1,5 @@
-from typing import Any
+import math
+from typing import Any, Literal
 
 import torch
 import torchmetrics as tm
@@ -14,7 +15,6 @@ def get_nn_class_metrics(num_classes: int) -> tm.MetricCollection:
     return tm.MetricCollection(
         {
             "f1": tm.F1Score(task="multiclass", num_classes=num_classes, average="weighted"),
-            "auc": tm.AUROC(task="multiclass", num_classes=num_classes),
             "accuracy": tm.Accuracy(task="multiclass", num_classes=num_classes),
             "precision": tm.Precision(
                 task="multiclass", num_classes=num_classes, average="weighted"
@@ -47,24 +47,74 @@ def load_classifier(classifier: CTClassifierNet, ckpt_path: str) -> None:
     )
 
 
+def nn_of_x_in_y(
+    x: torch.Tensor, y: torch.Tensor, chunk_size: int = 5000
+) -> tuple[torch.Tensor, torch.Tensor]:
+    idxs: list[torch.Tensor] = []
+    dists: list[torch.Tensor] = []
+
+    for index in range(math.ceil(x.size(0) / chunk_size)):
+        start = index * chunk_size
+        end = (index + 1) * chunk_size
+        D = torch.cdist(x[start:end], y)
+
+        min_dist, min_idx = torch.min(D, dim=-1)
+        idxs.append(min_idx)
+        dists.append(min_dist)
+
+    return torch.cat(idxs), torch.cat(dists)
+
+
 class ShapeToPointDistance:
-    def __init__(self, n_slices: int, device: torch.device) -> None:
+    def __init__(
+        self,
+        n_slices: int,
+        device: torch.device,
+        prefix: Literal["val", "test"],
+        chunk_size: int = 1000,
+    ) -> None:
         self.n_slices = n_slices
         self.device = device
+        self.prefix = prefix
+        self.chunk_size = chunk_size
         self.reset()
 
     def reset(self) -> None:
-        self.acc_pred: dict[int, list[torch.Tensor]] = {i: [] for i in range(self.n_slices)}
-        self.acc_gt: dict[int, list[torch.Tensor]] = {i: [] for i in range(self.n_slices)}
+        self.preds_per_timepoint: dict[int, list[torch.Tensor]] = {
+            i: [] for i in range(self.n_slices)
+        }
+        self.gts_per_timepoint: dict[int, torch.Tensor | None] = {
+            i: None for i in range(self.n_slices)
+        }
 
-    def update(self) -> None:
+    def update(self, pos_pred: torch.Tensor, pos_gt: torch.Tensor, timepoint: int) -> None:
         # Update the predictions
+        self.preds_per_timepoint[timepoint].append(pos_pred)
         # Update the ground truth cells only if needed
-        pass
+        if self.gts_per_timepoint[timepoint] is None:
+            self.gts_per_timepoint[timepoint] = pos_gt
 
     def compute(self) -> dict[str, torch.Tensor]:
+        if any(map(lambda x: x is None, self.gts_per_timepoint.values())) or any(
+            map(lambda x: len(x) == 0, self.preds_per_timepoint.values())
+        ):
+            raise ValueError("Did you call compute before update?")
+
         # Well, compute per timepoint and then take the mean and max
-        pass
+        dists: list[torch.Tensor] = []
+        for timepoint in self.preds_per_timepoint.keys():
+            preds = torch.cat(self.preds_per_timepoint[timepoint], dim=0)
+            gts = self.gts_per_timepoint[timepoint]
+
+            _, dist = nn_of_x_in_y(x=gts, y=preds, chunk_size=self.chunk_size)
+            dists.append(dist)
+
+        dists = torch.cat(dists)
+
+        return {
+            f"{self.prefix}/spd/mean": torch.mean(dists),
+            f"{self.prefix}/spd/max": torch.max(dists),
+        }
 
 
 class FlowMatching(LightningModule):
@@ -72,10 +122,12 @@ class FlowMatching(LightningModule):
         self,
         flow: PointCloudFlow | SinglePointFlow,
         classifier: CTClassifierNet,
-        optimizer: type[Optimizer],
         classifier_ckpt_path: str,
+        optimizer: type[Optimizer],
         lr_scheduler: type[LRScheduler] | None = None,
         lr_scheduler_args: dict[str, Any] | None = None,
+        nn_chunk_size: int = 5000,
+        spd_chunk_size: int = 1000,
     ) -> None:
         super().__init__()
         self.flow = flow
@@ -83,6 +135,7 @@ class FlowMatching(LightningModule):
         self._optimizer = optimizer
         self._lr_scheduler = lr_scheduler
         self._lr_scheduler_args = lr_scheduler_args
+        self.nn_chunk_size = nn_chunk_size
 
         # Load the classifier from a torch lightning checkpoint.
         load_classifier(classifier=self.classifier, ckpt_path=classifier_ckpt_path)
@@ -98,9 +151,6 @@ class FlowMatching(LightningModule):
         # Point-to-Shape distance
         psd = get_psd_metrics()
 
-        # Shape-to-Point distance
-        spd = ...
-
         # Regression metrics
         reg_metrics = get_reg_metrics()
 
@@ -109,12 +159,18 @@ class FlowMatching(LightningModule):
         self.val_psd_metrics = psd.clone(prefix="val/psd/")
         self.val_x_reg_metrics = reg_metrics.clone(prefix="val/x/")
         self.val_pos_reg_metrics = reg_metrics.clone(prefix="val/pos/")
+        self.val_spd_metrics = ShapeToPointDistance(
+            n_slices=self.n_slices - 1, device=self.device, prefix="val", chunk_size=spd_chunk_size
+        )
 
         # Test metrics
         self.test_nn_class_metrics = nn_class_metrics.clone(prefix="test/nn_class/")
         self.test_psd_metrics = psd.clone(prefix="test/psd/")
         self.test_x_reg_metrics = reg_metrics.clone(prefix="test/x/")
         self.test_pos_reg_metrics = reg_metrics.clone(prefix="test/pos/")
+        self.test_spd_metrics = ShapeToPointDistance(
+            n_slices=self.n_slices - 1, device=self.device, prefix="test", chunk_size=spd_chunk_size
+        )
 
     def training_step(self, batch: STTrainDataBatch, _) -> FlowLosses:
         losses = self.flow.loss(batch=batch)
@@ -126,6 +182,20 @@ class FlowMatching(LightningModule):
     def on_validation_epoch_start(self) -> None:
         # Move the classifier to the proper device
         self.classifier = self.classifier.to(self.device)
+        self.val_spd_metrics.reset()
+
+    def on_test_epoch_start(self) -> None:
+        # Move the classifier to the proper device
+        self.classifier = self.classifier.to(self.device)
+        self.test_spd_metrics.reset()
+
+    def on_validation_epoch_end(self) -> None:
+        spd_metrics = self.val_spd_metrics.compute()
+        self.log_dict(spd_metrics, on_epoch=True)
+
+    def on_test_epoch_end(self) -> None:
+        spd_metrics = self.test_spd_metrics.compute()
+        self.log_dict(spd_metrics, on_epoch=True)
 
     def eval_step(
         self,
@@ -134,6 +204,7 @@ class FlowMatching(LightningModule):
         pos_reg_metrics: tm.MetricCollection,
         nn_class_merics: tm.MetricCollection,
         psd_metrics: tm.MetricCollection,
+        spd_metrics: ShapeToPointDistance,
     ) -> None:
         x_traj, pos_traj = self.flow.sample(batch=batch)
         x_t2_pred, pos_t2_pred = x_traj[-1], pos_traj[-1]
@@ -141,34 +212,49 @@ class FlowMatching(LightningModule):
 
         # Compute regression metrics
         x_metrics, pos_metrics = (
-            x_reg_metrics(x_t2_gt, x_t2_pred),
-            pos_reg_metrics(pos_t2_gt, pos_t2_pred),
+            x_reg_metrics(x_t2_gt.contiguous(), x_t2_pred.contiguous()),
+            pos_reg_metrics(pos_t2_gt.contiguous(), pos_t2_pred.contiguous()),
         )
 
         # Compute classification metrics
-        classes_preds = torch.argmax(self.softmax(self.classifier(x_t2_pred)), dim=-1).to(
-            torch.long
+        classes_preds = (
+            torch.argmax(self.softmax(self.classifier(x_t2_pred)), dim=-1).to(torch.long).view(-1)
         )
 
         # Find closest real neighbor of each predicted cell and keep the computed distances
         # which we can use to compute the Point-to-Shape distance
-        # idxs, distances = closest_neighbor(pos_t2_pred, pos_t2_all)
+        idxs, dists = nn_of_x_in_y(
+            # (N_pred, pos_dim)
+            x=pos_t2_pred.view(-1, pos_t2_pred.size(-1)),
+            # (N_gt, pos_dim)
+            y=batch["global_pos_t2"],
+            chunk_size=self.nn_chunk_size,
+        )
 
         # Compute the classification metrics
-        # nn_class(classes_preds, ct_t2_all[idxs])
+        class_metrics = nn_class_merics(classes_preds, batch["global_ct_t2"][idxs])
 
         # Compute the Point-to-Shape distance
-        # psd(distances)
+        psd = psd_metrics(dists)
 
         # Computing the Shape-to-Point distance does not work on per step basis
         # as we need to first accumulate all predictions that we make for a timepoint
         # We can only then find the closest neighbor in the predicted data for each
         # ground truth cell.
-        # accumulate(pos_t2_pred, global_pos_t2)
-        # on_validation_epoch_end(): compute_spd(); log_dict();
+        # The "t2_ohe" is always of shape (N_microenvs | 1, N_points, n_slices)
+        # We substract 1 from the timepoint as it begins at 1 since it is the t2 timepoint.
+        timepoint = batch["t2_ohe"][0, 0].nonzero().item() - 1
+        # Accumulate
+        spd_metrics.update(
+            # (N_pred, pos_dim)
+            pos_pred=pos_t2_pred.view(-1, pos_t2_pred.size(-1)),
+            # (N_gt, pos_dim)
+            pos_gt=batch["global_pos_t2"],
+            timepoint=timepoint,
+        )
 
-        # Log all metrics
-        self.log_dict({**x_metrics, **pos_metrics})
+        # Log all metrics (The spd metrics will be logged in the on epoch end hooks)
+        self.log_dict({**x_metrics, **pos_metrics, **class_metrics, **psd}, on_epoch=True)
 
     def validation_step(self, batch: STValDataItem, _) -> None:
         self.eval_step(
@@ -177,6 +263,7 @@ class FlowMatching(LightningModule):
             pos_reg_metrics=self.val_pos_reg_metrics,
             nn_class_merics=self.val_nn_class_metrics,
             psd_metrics=self.val_psd_metrics,
+            spd_metrics=self.val_spd_metrics,
         )
 
     def test_step(self, batch: STValDataItem, _) -> None:
@@ -186,6 +273,7 @@ class FlowMatching(LightningModule):
             pos_reg_metrics=self.test_pos_reg_metrics,
             nn_class_merics=self.test_nn_class_metrics,
             psd_metrics=self.test_psd_metrics,
+            spd_metrics=self.test_spd_metrics,
         )
 
     def configure_optimizers(self) -> Any:
