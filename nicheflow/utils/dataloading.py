@@ -188,7 +188,7 @@ def microenv_val_collate(batch: list[STValDataItem]) -> STValDataItem:
     t1_ohe = sample["t1_ohe"][None, None, :].expand(
         sample["X_t1"].size(0), sample["X_t1"].size(1), -1
     )
-    t2_ohe = sample["t1_ohe"][None, None, :].expand(
+    t2_ohe = sample["t2_ohe"][None, None, :].expand(
         sample["X_t2"].size(0), sample["X_t2"].size(1), -1
     )
 
@@ -243,7 +243,7 @@ def sp_rpc_val_collate(batch: list[STValDataItem]) -> STValDataItem:
     pos_t2 = sample["pos_t2"].unsqueeze(0)
 
     t1_ohe = sample["t1_ohe"][None, None, :].expand(X_t1.size(0), X_t1.size(1), -1)
-    t2_ohe = sample["t1_ohe"][None, None, :].expand(X_t2.size(0), X_t2.size(1), -1)
+    t2_ohe = sample["t2_ohe"][None, None, :].expand(X_t2.size(0), X_t2.size(1), -1)
 
     return {
         "X_t1": X_t1,

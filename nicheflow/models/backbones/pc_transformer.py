@@ -173,7 +173,7 @@ class PointCloudTransformer(nn.Module):
 
         self.x_emb = nn.Linear(pca_dim + ohe_dim, concat_dim)
         self.pos_emb = nn.Linear(coord_dim, concat_dim)
-        self.time_emb = TimeEmbedding(2 * embed_dim, concat_dim)
+        self.time_emb = TimeEmbedding(embed_dim, concat_dim)
 
         self.enc_blocks = nn.ModuleList(
             [
