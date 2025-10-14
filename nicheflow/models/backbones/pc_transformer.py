@@ -223,7 +223,7 @@ class PointCloudTransformer(nn.Module):
         t_cond = torch.zeros_like(x_cond, device=x_cond.device, dtype=x_cond.dtype)
 
         # Encode
-        enc_output = torch.cat([x_cond, pos_cond, t_cond], dim=-1)
+        enc_output = torch.cat([x_cond, t_cond, pos_cond], dim=-1)
         for block in self.enc_blocks:
             enc_output = block(x=enc_output, mask=mask_condition)
 
@@ -233,7 +233,7 @@ class PointCloudTransformer(nn.Module):
         t_target = self.time_emb(t_target)[:, None, :].expand(-1, x_target.size(1), -1)
 
         # Decode
-        dec_output = torch.cat([x_target, pos_target, t_target], dim=-1)
+        dec_output = torch.cat([x_target, t_target, pos_target], dim=-1)
         for block in self.dec_blocks:
             dec_output = block(
                 x=dec_output,
