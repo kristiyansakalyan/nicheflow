@@ -207,10 +207,10 @@ marimo/_lsp/
 __marimo__/
 
 # Ignore the data files
-/data/
+*.pkl
 # Ignore hydra outputs
 outputs
 multirun
 
 .vscode
-ckpts
+*.ckpt
