@@ -71,7 +71,7 @@ class ShapeToPointDistance:
         n_slices: int,
         device: torch.device,
         prefix: Literal["val", "test"],
-        chunk_size: int = 1000,
+        chunk_size: int = 5000,
     ) -> None:
         self.n_slices = n_slices
         self.device = device
@@ -127,7 +127,7 @@ class FlowMatching(LightningModule):
         lr_scheduler: type[LRScheduler] | None = None,
         lr_scheduler_args: dict[str, Any] | None = None,
         nn_chunk_size: int = 5000,
-        spd_chunk_size: int = 1000,
+        spd_chunk_size: int = 5000,
     ) -> None:
         super().__init__()
         self.save_hyperparameters(ignore=["flow", "classifier", "optimizer", "lr_scheduler"])
