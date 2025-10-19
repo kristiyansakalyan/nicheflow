@@ -1,0 +1,11 @@
+defaults:
+  - rpc_and_sp_base
+
+datamodule:
+  _target_: nicheflow.datamodules.sp_and_rpc_datamodule.RPCDataModule
+  data_fp: ${paths.data_dir}/embryonic_data.pkl
+
+n_pcs: 50
+n_classes: 24
+n_slices: 3
+classifier_ckpt_path: ${paths.root_dir}/ckpts/Classifier_MED.ckpt

@@ -1,0 +1,10 @@
+# @package _global_
+defaults:
+  - override /data: sp_abd
+  - override /model: single_point_cfm
+  - override /logger: wandb
+  - override /trainer: iterative_gpu
+
+logger:
+  wandb:
+    name: "SPFlow_CFM_ABD"

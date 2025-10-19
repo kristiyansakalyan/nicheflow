@@ -1,0 +1,10 @@
+# @package _global_
+defaults:
+  - override /data: rpc_med
+  - override /model: point_cloud_transformer_cfm
+  - override /logger: wandb
+  - override /trainer: iterative_gpu
+
+logger:
+  wandb:
+    name: "RPCFlow_CFM_MED"

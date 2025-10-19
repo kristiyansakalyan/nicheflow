@@ -1,0 +1,10 @@
+datamodule:
+  seed: ${seed}
+  k_regions: 64
+  size_per_slice: 1024
+  ot_lambda: 0.1
+  val_upsample_factor: 4
+  train_batch_size: 8
+  num_workers: 4
+
+coord_dim: 2

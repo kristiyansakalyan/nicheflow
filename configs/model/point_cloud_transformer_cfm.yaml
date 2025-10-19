@@ -1,0 +1,42 @@
+_target_: nicheflow.tasks.flow_matching.FlowMatching
+
+flow:
+  _target_: nicheflow.models.flows.PointCloudFlow
+  backbone:
+    _target_: nicheflow.models.backbones.pc_transformer.PointCloudTransformer
+    pca_dim: ${data.n_pcs}
+    ohe_dim: ${data.n_slices}
+    coord_dim: ${data.coord_dim}
+    output_dim: ${add:${data.n_pcs},${data.coord_dim}}
+
+  variant:
+    _target_: nicheflow.models.flows.CFM
+    lambda_features: 1.0
+    lambda_pos: 1.0
+
+  num_steps: 20
+  solver: euler
+
+classifier:
+  _target_: nicheflow.models.ct_classifier.CTClassifierNet
+  input_dim: ${data.n_pcs} # The number of PCA components
+  hidden_dim: 32
+  output_dim: ${data.n_classes} # The number of cell types
+
+classifier_ckpt_path: ${data.classifier_ckpt_path}
+
+optimizer:
+  _target_: torch.optim.AdamW
+  _partial_: true
+  lr: 0.001
+  weight_decay: 0.00001
+
+lr_scheduler:
+  _target_: torch.optim.lr_scheduler.ReduceLROnPlateau
+  _partial_: true
+  mode: max
+  factor: 0.75
+  patience: 25
+
+lr_scheduler_args:
+  monitor: val/nn_class/f1

@@ -1,0 +1,10 @@
+# @package _global_
+defaults:
+  - override /data: nicheflow_mba
+  - override /model: point_cloud_transformer_gvfm
+  - override /logger: wandb
+  - override /trainer: iterative_gpu
+
+logger:
+  wandb:
+    name: "NicheFlow_GVFM_MBA"

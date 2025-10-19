@@ -9,7 +9,8 @@ from scanpy import AnnData
 from tqdm import tqdm
 
 from nicheflow.preprocessing import H5ADDatasetDataclass
-from nicheflow.utils import chunked_cdist_sum_argsort, grid_based_sampling_by_y, setup_logging
+from nicheflow.utils.log import setup_logging
+from nicheflow.utils.preprocessing import chunked_cdist_sum_argsort, grid_based_sampling_by_y
 
 MIN_COVERAGE = 5
 setup_logging()

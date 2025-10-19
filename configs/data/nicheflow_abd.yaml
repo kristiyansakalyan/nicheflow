@@ -1,0 +1,10 @@
+defaults:
+  - nicheflow_base
+
+datamodule:
+  data_fp: ${paths.data_dir}/axolotl_brain_dev.pkl
+
+n_pcs: 50
+n_classes: 33
+n_slices: 6
+classifier_ckpt_path: ${paths.root_dir}/ckpts/Classifier_ABD.ckpt

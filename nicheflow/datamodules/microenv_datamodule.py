@@ -23,7 +23,7 @@ class MicroEnvDataModule(LightningDataModule):
         num_workers: int = 4,
     ) -> None:
         super().__init__()
-        self.seed = seed
+        self.seed = int(seed)
         self.k_regions = k_regions
         self.n_microenvs_per_slice = n_microenvs_per_slice
         self.val_upsample_factor = val_upsample_factor

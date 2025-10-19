@@ -28,7 +28,7 @@ class BaseRPCDataModule(LightningDataModule):
 
         self.common_dataset_args = {
             "data_fp": data_fp,
-            "seed": seed,
+            "seed": int(seed),
             "k_regions": k_regions,
             "size_per_slice": size_per_slice,
             "ot_plan_sampler": ot_plan_sampler,

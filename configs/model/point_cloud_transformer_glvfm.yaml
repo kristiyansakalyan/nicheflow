@@ -1,0 +1,7 @@
+defaults:
+  - point_cloud_transformer_cfm
+
+flow:
+  variant:
+    _target_: nicheflow.models.flows.VFM
+    vfm_objective: "GLVFM"

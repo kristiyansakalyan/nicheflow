@@ -1,0 +1,7 @@
+defaults:
+  - single_point_cfm
+
+flow:
+  variant:
+    _target_: nicheflow.models.flows.VFM
+    vfm_objective: "GVFM"

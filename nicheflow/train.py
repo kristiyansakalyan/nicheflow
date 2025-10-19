@@ -23,6 +23,7 @@ def main(config: DictConfig) -> float | None:
     set_seed(config)
 
     # Resolve
+    OmegaConf.register_new_resolver("add", lambda x, y: x + y)
     OmegaConf.resolve(config)
     print_config(config)
 

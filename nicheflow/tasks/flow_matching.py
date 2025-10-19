@@ -89,10 +89,10 @@ class ShapeToPointDistance:
 
     def update(self, pos_pred: torch.Tensor, pos_gt: torch.Tensor, timepoint: int) -> None:
         # Update the predictions
-        self.preds_per_timepoint[timepoint].append(pos_pred)
+        self.preds_per_timepoint[timepoint].append(pos_pred.detach().cpu())
         # Update the ground truth cells only if needed
         if self.gts_per_timepoint[timepoint] is None:
-            self.gts_per_timepoint[timepoint] = pos_gt
+            self.gts_per_timepoint[timepoint] = pos_gt.detach().cpu()
 
     def compute(self) -> dict[str, torch.Tensor]:
         if any(map(lambda x: x is None, self.gts_per_timepoint.values())) or any(
@@ -103,11 +103,11 @@ class ShapeToPointDistance:
         # Well, compute per timepoint and then take the mean and max
         dists: list[torch.Tensor] = []
         for timepoint in self.preds_per_timepoint.keys():
-            preds = torch.cat(self.preds_per_timepoint[timepoint], dim=0)
-            gts = self.gts_per_timepoint[timepoint]
+            preds = torch.cat(self.preds_per_timepoint[timepoint], dim=0).to(self.device)
+            gts = self.gts_per_timepoint[timepoint].to(self.device)
 
             _, dist = nn_of_x_in_y(x=gts, y=preds, chunk_size=self.chunk_size)
-            dists.append(dist)
+            dists.append(dist.detach().cpu())
 
         dists = torch.cat(dists)
 
@@ -130,6 +130,8 @@ class FlowMatching(LightningModule):
         spd_chunk_size: int = 1000,
     ) -> None:
         super().__init__()
+        self.save_hyperparameters(ignore=["flow", "classifier", "optimizer", "lr_scheduler"])
+
         self.flow = flow
         self.classifier = classifier
         self._optimizer = optimizer

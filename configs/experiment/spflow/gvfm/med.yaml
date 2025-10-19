@@ -1,0 +1,10 @@
+# @package _global_
+defaults:
+  - override /data: sp_med
+  - override /model: single_point_gvfm
+  - override /logger: wandb
+  - override /trainer: iterative_gpu
+
+logger:
+  wandb:
+    name: "SPFlow_GVFM_MED"

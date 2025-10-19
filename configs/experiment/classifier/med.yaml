@@ -16,3 +16,9 @@ trainer:
 
 model:
   plot_callbacks: False
+
+callbacks:
+  model_checkpoint:
+    monitor: "val/f1"
+  early_stopping:
+    monitor: "val/f1"
