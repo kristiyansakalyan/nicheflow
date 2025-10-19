@@ -34,6 +34,7 @@ class MicroEnvDatasetBase(STDatasetBase):
 
         # Must be set in child classes
         self.n_microenvs_per_slice: int
+        self.resample_n_microenvs: int | None = None
         self.per_microenv_transforms = per_microenv_transforms
         # Save the important attributes from the dataset class
         self.timepoint_neighboring_indices = ds.timepoint_neighboring_indices
@@ -81,7 +82,11 @@ class MicroEnvDatasetBase(STDatasetBase):
         # Now perform the OT
         pi = self.ot_plan_sampler.get_map(x0=source, x1=target)
         source_idxs, target_idxs = self.ot_plan_sampler.sample_map(
-            pi, batch_size=self.n_microenvs_per_slice, replace=False
+            pi,
+            batch_size=self.n_microenvs_per_slice
+            if self.resample_n_microenvs is None
+            else self.resample_n_microenvs,
+            replace=False,
         )
 
         resampled_microenvs_t1 = [microenvs_t1[i] for i in source_idxs]
@@ -125,6 +130,7 @@ class InfiniteMicroEnvDataset(IterableDataset, MicroEnvDatasetBase):
         seed: int = 2025,
         k_regions: int = 64,
         n_microenvs_per_slice: int = 256,
+        resample_n_microenvs: int = 64,
         ot_plan_sampler: OTPlanSampler = OTPlanSampler(method="exact"),
         ot_lambda: float = 0.1,
         per_pc_transforms: Compose = Compose([]),
@@ -145,6 +151,7 @@ class InfiniteMicroEnvDataset(IterableDataset, MicroEnvDatasetBase):
 
         self.k_regions = k_regions
         self.n_microenvs_per_slice = n_microenvs_per_slice
+        self.resample_n_microenvs = resample_n_microenvs
 
         # Create KMeans regions
         self.timepoint_regions_to_idx: dict[str, dict[int, list[int]]] = create_kmeans_regions(

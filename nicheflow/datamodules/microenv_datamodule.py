@@ -14,6 +14,7 @@ class MicroEnvDataModule(LightningDataModule):
         seed: int = 2025,
         k_regions: int = 64,
         n_microenvs_per_slice: int = 256,
+        resample_n_microenvs: int = 64,
         ot_lambda: float = 0.1,
         ot_plan_sampler: OTPlanSampler = OTPlanSampler(method="exact"),
         per_pc_transforms: Compose = Compose([]),
@@ -26,6 +27,7 @@ class MicroEnvDataModule(LightningDataModule):
         self.seed = int(seed)
         self.k_regions = k_regions
         self.n_microenvs_per_slice = n_microenvs_per_slice
+        self.resample_n_microenvs = resample_n_microenvs
         self.val_upsample_factor = val_upsample_factor
 
         self.train_batch_size = train_batch_size
@@ -45,6 +47,7 @@ class MicroEnvDataModule(LightningDataModule):
             seed=self.seed,
             k_regions=self.k_regions,
             n_microenvs_per_slice=self.n_microenvs_per_slice,
+            resample_n_microenvs=self.resample_n_microenvs,
         )
 
         self.test_dataset = TestMicroEnvDataset(

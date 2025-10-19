@@ -3,6 +3,7 @@ datamodule:
   seed: ${seed}
   k_regions: 64
   n_microenvs_per_slice: 256
+  resample_n_microenvs: 64
   ot_lambda: 0.1
   val_upsample_factor: 4
   train_batch_size: 2
