@@ -18,7 +18,7 @@ This repository provides the official implementation of **[NicheFlow](https://ww
   <img src="figures/nicheflow.jpg" width="60%">
 </p>
 
-Overview of NicheFlow. At time $t^1$, we generate a target microenvironment $\mathcal{M}^1$ by transforming Gaussian noise $\mathcal{M}^z$ using a Variational Flow Matching model with a posterior conditioned on a source microenvironment $\mathcal{M}^0$ at $t^0$. Source–target pairs are identified via OT over pooled microenvironment coordinates and gene expression profiles.
+Overview of NicheFlow. At time $t_1$, we generate a target microenvironment $\mathcal{M}^1$ by transforming Gaussian noise $\mathcal{M}^z$ using a Variational Flow Matching model with a posterior conditioned on a source microenvironment $\mathcal{M}^0$ at $t_0$. Source–target pairs are identified via OT over pooled microenvironment coordinates and gene expression profiles.
 
 ## Installation
 
