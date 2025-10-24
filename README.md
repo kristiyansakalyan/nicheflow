@@ -52,10 +52,13 @@ All experiment configurations are stored in the [`configs/experiment/`](configs/
 - The root paths [`configs/paths/default.yaml`](configs/paths/default.yaml) reflect your local setup.
 - The classifier checkpoint and dataset paths are correctly set in each [`configs/data/{model_name}_{dataset_name}.yaml`](configs/data/) file.
 
+## Adding new datasets
+
+To train on additional datasets, follow the guidelines provided in [NEW_DATASETS.md](NEW_DATASETS.md)
+
 ## Reproducibility
 
 Detailed instructions to reproduce all experiments and tables from the paper are available in [REPRODUCIBILITY.md](REPRODUCIBILITY.md).
-
 
 ## Citation
 If you use this work, please cite our paper as follows.
@@ -65,5 +68,6 @@ If you use this work, please cite our paper as follows.
     author={Sakalayan, Kristiyan and Palma, Alessandro and Guerranti, Filippo and Theis, Fabian and G{\"u}nnemann, Stephan},
     booktitle={Neural Information Processing Systems (NeurIPS)},
     year={2025},
+    url={https://openreview.net/forum?id=5ofJyjgrth}
 }
 ```
