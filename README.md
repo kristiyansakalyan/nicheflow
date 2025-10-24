@@ -1,18 +1,24 @@
 # Modeling Microenvironment Trajectories on Spatial Transcriptomics with NicheFlow
+
 <p align="center">
   <b>Kristiyan Sakalyan*</b>, <b>Alessandro Palma*</b>, <b>Filippo Guerranti*</b>, Fabian J. Theis, Stephan Günnemann
 </p>
+
 <p align="center">
-    <a href="https://www.cs.cit.tum.de/daml/nicheflow/">Project page</a> | 
-    <a href="https://openreview.net/forum?id=5ofJyjgrth">OpenReview </a>
-    <!-- <a href="#">arXiv </a> -->
-
+  <a href="https://www.cs.cit.tum.de/daml/nicheflow/">Project page</a> •
+  <a href="https://openreview.net/forum?id=5ofJyjgrth">OpenReview</a>
+  <!-- • <a href="#">arXiv</a> -->
 </p>
-<p align="center"><img src="figures/nicheflow.jpg" width="60%"></p>
 
-This repository provides the official implementation of **[NicheFlow](https://www.cs.cit.tum.de/daml/nicheflow)**
+---
 
-NicheFlow is a **flow-based generative model** designed to learn and predict the **spatiotemporal dynamics of cellular microenvironments** in time-resolved spatial transcriptomics.  
+This repository provides the official implementation of **[NicheFlow](https://www.cs.cit.tum.de/daml/nicheflow)**, a **flow-based generative model** designed to learn and predict the **spatiotemporal dynamics of cellular microenvironments** in time-resolved spatial transcriptomics.
+
+<p align="center">
+  <img src="figures/nicheflow.jpg" width="60%">
+</p>
+
+*Overview of NicheFlow. At time $t^1$, we generate a target microenvironment $\mathcal{M}^1$ by transforming Gaussian noise $\mathcal{M}^z$ using a Variational Flow Matching model with a posterior conditioned on a source microenvironment $\mathcal{M}^0$ at $t^0$. Source–target pairs are identified via OT over pooled microenvironment coordinates and gene expression profiles.*
 
 ## Installation
 
@@ -54,11 +60,11 @@ All experiment configurations are stored in the [`configs/experiment/`](configs/
 
 ## Adding new datasets
 
-To train on additional datasets, follow the guidelines provided in [NEW_DATASETS.md](NEW_DATASETS.md)
+To train on additional datasets, follow the guidelines provided in [NEW_DATASETS.md](docs/NEW_DATASETS.md)
 
 ## Reproducibility
 
-Detailed instructions to reproduce all experiments and tables from the paper are available in [REPRODUCIBILITY.md](REPRODUCIBILITY.md).
+Detailed instructions to reproduce all experiments and tables from the paper are available in [REPRODUCIBILITY.md](docs/REPRODUCIBILITY.md).
 
 ## Citation
 If you use this work, please cite our paper as follows.
