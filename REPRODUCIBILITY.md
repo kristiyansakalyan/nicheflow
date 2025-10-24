@@ -1,6 +1,6 @@
 # Reproducibility
 
-## Visualizing Results
+## Tables
 
 For all experiments described below, you can generate the tables shown in our paper using the [`print_eval_results`](notebooks/print_eval_results.ipynb) notebook after running the corresponding evaluation scripts.
 
