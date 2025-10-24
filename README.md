@@ -8,7 +8,7 @@
     <!-- <a href="#">arXiv </a> -->
 
 </p>
-<p align="center"><img src="figures/nicheflow.jpg"></p>
+<p align="center"><img src="figures/nicheflow.jpg" width="60%"></p>
 
 This repository provides the official implementation of **[NicheFlow](https://www.cs.cit.tum.de/daml/nicheflow)**
 
