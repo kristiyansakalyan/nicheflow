@@ -100,7 +100,7 @@ class ShapeToPointDistance:
         ):
             raise ValueError("Did you call compute before update?")
 
-        # Well, compute per timepoint and then take the mean and max
+        # Compute per timepoint and then take the mean and max
         dists: list[torch.Tensor] = []
         for timepoint in self.preds_per_timepoint.keys():
             preds = torch.cat(self.preds_per_timepoint[timepoint], dim=0).to(self.device)
