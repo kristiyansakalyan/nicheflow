@@ -48,6 +48,10 @@ python nicheflow/train.py experiment=nicheflow/glvfm/med
 
 All experiment configurations are stored in the [`configs/experiment/`](configs/experiment/) folder.
 
+**Note:** If you encounter any path-related errors, ensure that:
+- The root paths [`configs/paths/default.yaml`](configs/paths/default.yaml) reflect your local setup.
+- The classifier checkpoint and dataset paths are correctly set in each [`configs/data/{model_name}_{dataset_name}.yaml`](configs/data/) file.
+
 ## Reproducibility
 
 Detailed instructions to reproduce all experiments and tables from the paper are available in [REPRODUCIBILITY.md](REPRODUCIBILITY.md).
