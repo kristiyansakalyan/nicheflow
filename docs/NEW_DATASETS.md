@@ -19,6 +19,7 @@ To train **NicheFlow** on a new dataset, you need to follow three main steps: da
    - **`dx` and `dy`** - discretization steps for generating the grid of **test microenvironments**.
    - **Device** - set to `cuda` (recommended) to speed up preprocessing.
    - **Chunk size** - controls memory usage. Reduce it if you encounter errors.
+4. Preprocess the dataset and save it in the [`data/`](../data/) folder
 
 **Recommendation:**  
 See [`download_and_preprocess.ipynb`](../notebooks/download_and_preprocess.ipynb) for a complete example of how we downloaded and preprocessed the datasets used in our paper.
