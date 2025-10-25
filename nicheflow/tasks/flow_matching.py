@@ -126,8 +126,8 @@ class FlowMatching(LightningModule):
         optimizer: type[Optimizer],
         lr_scheduler: type[LRScheduler] | None = None,
         lr_scheduler_args: dict[str, Any] | None = None,
-        nn_chunk_size: int = 5000,
-        spd_chunk_size: int = 5000,
+        nn_chunk_size: int = 5_000,
+        spd_chunk_size: int = 1_000,
     ) -> None:
         super().__init__()
         self.save_hyperparameters(ignore=["flow", "classifier", "optimizer", "lr_scheduler"])
@@ -183,12 +183,14 @@ class FlowMatching(LightningModule):
 
     def on_validation_epoch_start(self) -> None:
         # Move the classifier to the proper device
-        self.classifier = self.classifier.to(self.device)
+        self.classifier = self.classifier.to(self.trainer.strategy.root_device)
+        self.val_spd_metrics.device = self.trainer.strategy.root_device
         self.val_spd_metrics.reset()
 
     def on_test_epoch_start(self) -> None:
         # Move the classifier to the proper device
-        self.classifier = self.classifier.to(self.device)
+        self.classifier = self.classifier.to(self.trainer.strategy.root_device)
+        self.test_spd_metrics.device = self.trainer.strategy.root_device
         self.test_spd_metrics.reset()
 
     def on_validation_epoch_end(self) -> None:
