@@ -40,7 +40,7 @@ After downloading, place the decompressed data in the [`data/`](data) folder.
 ## How to train
 To train a model, you will also need the **classifier checkpoints** (used for evaluation), available on [FigShare](https://figshare.com/articles/software/NicheFlow_-_Data_Checkpoints_and_Results/30426610) in `main_ckpts.zip`.
 
-After downloading, place them in the [`checkpoints/`](ckpts) folder.
+After downloading, place them in the [`ckpts/`](ckpts) folder.
 
 Then launch a training with:
 ```
