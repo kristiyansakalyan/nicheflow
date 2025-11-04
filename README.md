@@ -7,7 +7,7 @@
 <p align="center">
   <a href="https://www.cs.cit.tum.de/daml/nicheflow/">Project page</a> •
   <a href="https://openreview.net/forum?id=5ofJyjgrth">OpenReview</a>
-  <!-- • <a href="#">arXiv</a> -->
+  • <a href="https://arxiv.org/abs/2511.00977">arXiv</a>
 </p>
 
 ---
